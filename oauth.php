@@ -11,31 +11,17 @@ define('GOOGLE_OAUTH_AUTHORIZE_API', 'https://www.google.com/accounts/OAuthAutho
 
 
 class OAuthClient {
-
-  public static function storeInstance($consumer_key, $consumer_secret, $store_type="MySQL", $extra_options=array()) {
-    $options = array(
-	    'consumer_key' => $consumer_key, 
-	    'consumer_secret' => $consumer_secret,
-	    'signature_methods' => array('HMAC-SHA1', 'PLAINTEXT'),
-	    'server_uri' =>  SERVER_URI,
-	    'request_token_uri' =>  GOOGLE_OAUTH_REQUEST_TOKEN_API,
-	    'authorize_uri' =>  GOOGLE_OAUTH_AUTHORIZE_API,
-	    'access_token_uri' =>  GOOGLE_OAUTH_ACCESS_TOKEN_API
-    );
-    $options = array_merge($options, $extra_options);
-    $store = OAuthStore::instance($store_type, $options);
-    return $store;
-  }
   
-  public static function storeSetUp($consumer_key, $consumer_secret, $user_id=1, $store_type="MySQL", $extra_options=array()) {
+  public static function storeServer($consumer_key, $consumer_secret, $store_type="MySQL", $user_id=1, $extra_options=array()) {
     //Set up the store for the user id. Only run this once.
-    $store = OAuthClient::storeInstance($consumer_key, $consumer_secret, $store_type="MySQL", $extra_options);
+    $options = OAuthClient::merge_options($consumer_key, $consumer_secret, $extra_options);
+    $store = OAuthClient::storeInstance($consumer_key, $consumer_secret, $store_type="MySQL", $options);
   	$ckey = $store->updateServer($options, $user_id);
   }
 
-  public static function getAuthURL($consumer_key, $consumer_secret, $user_id=1, $store="MySQL", $callback=null, $extra_options=array()) {
+  public static function getAuthURL($consumer_key, $consumer_secret, $store="MySQL", $user_id=1, $callback=null, $extra_options=array()) {
     //return the authorization URL. Redirect the header to this location.
-    OAuthClient::storeInstance($consumer_key, $consumer_secret, $store_type="MySQL", $extra_options);
+    OAuthClient::storeInstance(OAuthClient::merge_options($consumer_key, $consumer_secret, $extra_options), $store);
   
     $getAuthTokenParams = array('scope' => 'http://www.google.com/fusiontables/api/query',
 									              'oauth_callback' => $callback);
@@ -48,9 +34,9 @@ class OAuthClient {
 		     "&domain=".$consumer_key;
   }
   
-  public static function authorize($consumer_key, $consumer_secret, $oauth_token, $verifier, $user_id=1, $store="MySQL", $extra_options=array()) {
+  public static function authorize($consumer_key, $consumer_secret, $oauth_token, $verifier, $store="MySQL", $user_id=1, $extra_options=array()) {
     //Obtain an access token. This token can be reused until it expires.
-		OAuthClient::storeInstance($consumer_key, $consumer_secret, $store_type="MySQL", $extra_options);
+		OAuthClient::storeInstance(OAuthClient::merge_options($consumer_key, $consumer_secret, $extra_options), $store);
 		
 	  try {
 		  OAuthRequester::requestAccessToken($consumer_key, $oauth_token, $user_id, 'POST', array('oauth_token' => $oauth_token, 'oauth_verifier' => $verifier));
@@ -60,15 +46,33 @@ class OAuthClient {
 		  return;
 	  }
   }
+    
+  public static function storeInstance($options, $store_type) {
+    $store = OAuthStore::instance($store_type, $options);
+    return $store;
+  }
+  
+  public static function merge_options($consumer_key, $consumer_secret, $extra_options) {
+    return array_merge(array(
+      'signature_methods' => array('HMAC-SHA1', 'PLAINTEXT'),
+      'server_uri' =>  SERVER_URI,
+      'request_token_uri' =>  GOOGLE_OAUTH_REQUEST_TOKEN_API,
+      'authorize_uri' =>  GOOGLE_OAUTH_AUTHORIZE_API,
+      'access_token_uri' =>  GOOGLE_OAUTH_ACCESS_TOKEN_API
+    ),
+    array('consumer_key' => $consumer_key, 'consumer_secret' => $consumer_secret),
+    $extra_options);
+  }
 }
 
 class FTOAuthClient {
 
-  function __construct($consumer_key, $consumer_secret, $store_type="MySQL", $extra_options=array()) {
-    OAuthClient::storeInstance($consumer_key, $consumer_secret, $store_type="MySQL", $extra_options);
+  function __construct($consumer_key, $consumer_secret, $store="MySQL", $user_id=1, $extra_options=array()) {
+    $this->user_id = $user_id;
+    OAuthClient::storeInstance(OAuthClient::merge_options($consumer_key, $consumer_secret, $extra_options), $store);
   }
   
-  function query($query, $user_id=1) {
+  function query($query) {
   
   	if(preg_match("/^SELECT|^SHOW|^DESCRIBE/i", $query)) {
 		  $request = new OAuthRequester("http://www.google.com/fusiontables/api/query?sql=".rawurlencode($query), 'GET');
@@ -77,7 +81,7 @@ class FTOAuthClient {
 		  $request = new OAuthRequester("http://www.google.com/fusiontables/api/query", 'POST', "sql=".rawurlencode($query));
 		
 	  }
-	  $result = $request->doRequest($user_id);
+	  $result = $request->doRequest($this->user_id);
 	
 	  if ($result['code'] == 200) {
 		   return $result['body'];
