@@ -1,26 +1,35 @@
 Overview
 --------
 
-This library allows easier access to Fusion Tables. It contains:
+This library allows for easier access to Fusion Tables. It contains:
 
 1. Authentication/Authorization mechanisms (OAuth and ClientLogin)
 2. SQL builder
 3. CSV importer
 
 
-Usage
------
+Authentication/Authorization
+----------------------------
+This library provides 3 mechanisms for authentication / authorization:
+1. ClientLogin
+2. OAuth through PHP extension
+3. OAuth through 3rd party library
 
-Download the entire project and include in your PHP application. All dependencies
-are included in the project.
+
+OAuth through PHP extension
+---------------------------
+To use the OAuth PHP extension, please follow instructions for installation:
+
+http://www.php.net/manual/en/oauth.setup.php
 
 
-About the Dependencies
-----------------------
+3rd party OAuth library
+-----------------------
+The following 3rd party OAuth php library was used: 
 
-oauth-php library - http://code.google.com/p/oauth-php/
+http://code.google.com/p/oauth-php/
 
-For the full functionality you will need:
+For the full functionality of this library you will need:
 
 PHP 5
 Apache extension as getallheaders() is used
@@ -28,9 +37,7 @@ libcurl
 mysql extension
 openssl for RSA-SHA1 support
 
-
 Initial set-up
---------------
 
 The oauth-php library will require some initial set-up, depending on how plan
 to use it. The library requires the creation of a store. The store could be 
