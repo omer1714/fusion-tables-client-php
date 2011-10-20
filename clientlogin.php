@@ -4,7 +4,7 @@ include_once "constants.php";
 
 class ClientLogin {
   public static function getAuthToken($username, $password) {
-    $clientlogin_curl=curl_init();
+    $clientlogin_curl = curl_init();
     curl_setopt($clientlogin_curl,CURLOPT_URL,'https://www.google.com/accounts/ClientLogin');
     curl_setopt($clientlogin_curl, CURLOPT_POST, true); 
     curl_setopt ($clientlogin_curl, CURLOPT_POSTFIELDS,
@@ -27,7 +27,7 @@ class FTClientLogin {
   
   function query($query, $gsessionid = null, $recursedOnce = false) {
     
-    $url = SCOPE;
+    $url = URL;
    	$query =  "sql=".urlencode($query);
    	
     $fusiontables_curl=curl_init();
